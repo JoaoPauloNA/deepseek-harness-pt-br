@@ -1,0 +1,25 @@
+{
+  "name": "dsh-locale-pt-br",
+  "version": "0.1.0",
+  "description": "Brazilian Portuguese locale pack for DeepSeek Harness Web",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoaoPauloNA/deepseek-harness-pt-br.git"
+  },
+  "keywords": ["deepseek-harness", "dsh", "locale", "i18n", "pt-BR"],
+  "exports": {
+    "./client": "./src/client.ts"
+  },
+  "dsh": {
+    "client": {
+      "inject": ["@deepseek-ai/dsh-client-locale"],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.0",
+    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.7"
+  }
+}
