@@ -24,3 +24,5 @@ Selecione **Português (Brasil)** nas configurações do aplicativo. Chaves aind
 ## Desenvolvimento
 
 O arquivo [src/client.ts](src/client.ts) contém os dicionários por namespace. Cada nova área deve ser acompanhada de uma verificação no Harness para garantir que a interface carregue a tradução e mantenha o fallback quando apropriado.
+
+Consulte o [guia local](GUIA_LOCAL.md) para preparar, iniciar e testar a interface manualmente.
