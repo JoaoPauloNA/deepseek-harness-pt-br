@@ -1,0 +1,4 @@
+# Adds the Brazilian Portuguese dictionaries to a Web profile.
+- insert:
+    - id: locale-pt-br
+      name: dsh-locale-pt-br

@@ -10,14 +10,19 @@
   },
   "keywords": ["deepseek-harness", "dsh", "locale", "i18n", "pt-BR"],
   "exports": {
-    "./client": "./src/client.ts"
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js"
   },
   "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "inject": ["@deepseek-ai/dsh-client-locale"],
       "platform": "web"
     }
   },
+  "files": ["lib/index.js", "lib/client.js", "cordis.patch.yml"],
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.0",
     "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.7"
