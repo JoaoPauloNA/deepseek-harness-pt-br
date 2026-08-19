@@ -1,69 +1,153 @@
+<div align="center">
+
 # DeepSeek Harness em Português do Brasil
 
-[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
-[![Cobertura da interface](https://img.shields.io/badge/cobertura%20da%20interface-100%25-brightgreen.svg)](#cobertura-auditada)
+**A interface Web do DeepSeek Harness, inteira, no seu idioma.**
 
-Pacote de idioma `pt-BR` para a interface Web do
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+[![Licença MIT](https://img.shields.io/badge/licença-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Cobertura da interface](https://img.shields.io/badge/interface%20estática-100%25%20traduzida-brightgreen.svg?style=flat-square)](#cobertura-auditada)
+[![Chaves traduzidas](https://img.shields.io/badge/chaves-379-informational.svg?style=flat-square)](src/client.ts)
+[![Harness](https://img.shields.io/badge/dsh-0.1.0--rc.7-orange.svg?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness)
 
-O projeto adiciona traduções `pt-BR` para toda a interface Web estática do
-Harness, sem modificar componentes React, estilos, sessões ou configurações
-do usuário. Conteúdo dinâmico retornado por modelos, ferramentas e APIs é
-preservado no idioma de origem.
+Um pacote de idioma `pt-BR` para o
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) —
+sem tocar em componentes React, estilos, sessões ou nas suas configurações.
 
-> **Status da cobertura — interface estática:** `██████████ 100%`
+</div>
 
-> **Sobre a opção de idioma em Settings:** o DeepSeek Harness (`dsh`
-> `0.1.0-rc.7`, commit `99f6f02fec`) ainda não tem um ponto de extensão para
-> um pacote de terceiros adicionar um idioma novo à lista de
-> **Settings → General → Language** — o serviço `@deepseek-ai/dsh-client-locale`
-> trata `zh`/`en` como um conjunto fechado (`LOCALE_IDS`), tanto na lista
-> exibida quanto na validação de `setLocale()`. Registrar só os dicionários
-> pt-BR (como uma versão anterior deste pacote fazia) carrega as traduções,
-> mas nunca torna **Português (Brasil)** selecionável. Por isso este pacote
-> aplica um patch em tempo de execução na instância do serviço de idioma
-> (ver [Como o pt-BR é ativado](#como-o-pt-br-é-ativado) abaixo) para expor a
-> opção enquanto o Harness não ganha suporte nativo a idiomas adicionais.
+---
+
+## Comece em um minuto
+
+```sh
+cd ~/deepseek-harness
+pnpm dsh plugin --profile web add github:JoaoPauloNA/deepseek-harness-pt-br
+pnpm dsh web
+```
+
+Abra `http://127.0.0.1:3080` e vá em **Settings → General → Language**.
+**Português (Brasil)** estará na lista.
+
+## Por que este pacote existe
+
+O Harness nasceu bilíngue — chinês e inglês — e a lista de idiomas é fechada
+no código. Este pacote não só traduz: ele também abre espaço para o
+português nessa lista, para que a interface toda mude de idioma com um
+clique, como qualquer outro idioma nativo.
+
+| | |
+| --- | --- |
+| **Cobertura** | 379 chaves, 100% da interface Web estática auditada |
+| **Escopo** | Só texto de interface — o que o modelo escreve continua como veio |
+| **Invasividade** | Zero mudanças no Harness; é um plugin instalado ao lado |
+| **Reversível** | Um comando remove; a interface volta ao inglês |
 
 ## O que está traduzido
 
 | Área | Cobertura |
 | --- | --- |
-| Conversa e ferramentas | Mensagens, imagens, aprovações, fila, terminal, tarefas e detalhes |
-| Sessões e colaboração | Espaços de trabalho, metas, perguntas, subagentes, workflows e trajetória |
-| Configurações | Geral, idioma, aparência, modelos, plugins, permissões e predefinições de agente |
-| Navegação e superfícies auxiliares | Barra lateral, comandos, habilidades, jobs, feedback e arquivos gerados |
+| **Conversa e ferramentas** | Mensagens, imagens, aprovações, fila, terminal, tarefas e detalhes |
+| **Sessões e colaboração** | Espaços de trabalho, metas, perguntas, subagentes, workflows e trajetória |
+| **Configurações** | Geral, idioma, aparência, modelos, plugins, permissões e predefinições de agente |
+| **Navegação e apoio** | Barra lateral, comandos, habilidades, jobs, feedback e arquivos gerados |
+
+Conteúdo dinâmico devolvido por modelos, ferramentas e APIs é preservado no
+idioma de origem — traduzir a resposta do agente não é papel de um pacote de
+interface.
+
+## Requisitos
+
+- [Node.js](https://nodejs.org/) 22 ou superior
+- [pnpm](https://pnpm.io/installation)
+- Um checkout do DeepSeek Harness preparado com `pnpm install` e `pnpm run build`
+
+## Instalação
+
+### Pelo GitHub
+
+```sh
+cd ~/deepseek-harness
+pnpm dsh plugin --profile web add github:JoaoPauloNA/deepseek-harness-pt-br
+pnpm dsh web
+```
+
+O repositório já traz o cliente JavaScript compilado, então a instalação não
+depende de rodar scripts de build do pacote.
+
+### Fixando uma versão
+
+Para que uma mudança futura no repositório não altere a sua instalação, fixe
+um commit ou uma tag:
+
+```sh
+pnpm dsh plugin --profile web add github:JoaoPauloNA/deepseek-harness-pt-br#<commit-ou-tag>
+```
+
+### Atualizar ou remover
+
+Atualizar é reexecutar o comando de instalação com a revisão desejada.
+Para remover:
+
+```sh
+cd ~/deepseek-harness
+pnpm dsh plugin --profile web remove dsh-locale-pt-br
+```
 
 ## Como o pt-BR é ativado
 
-`src/client.ts` faz duas coisas em `apply(ctx)`:
+<details>
+<summary><b>Detalhes técnicos — por que um pacote de tradução precisa de um patch</b></summary>
 
-1. Registra os dicionários pt-BR no serviço de idioma, como qualquer pacote
-   de tradução (`ctx.locale.register(namespace, 'pt-BR', dicionário)`).
-2. Em seguida, `patchLocaleRuntime()` altera a instância em execução do
-   serviço para incluir `{ id: 'pt-BR', label: 'Português (Brasil)' }` na
-   lista de idiomas selecionáveis, e troca `setLocale` para que a seleção do
-   pt-BR não tente persistir a preferência pelo caminho normal do Host — o
-   schema de configurações (`LocaleSettingsSchema`) também só aceita
-   `zh | en` e rejeitaria a gravação. A seleção do pt-BR é lembrada em
-   `localStorage` (`dsh-locale-pt-br:active`) e reaplicada a cada
-   carregamento da página.
+<br>
 
-Isso depende de campos e métodos que o `dsh-client-locale` declara `private`
-no TypeScript, mas que continuam sendo propriedades comuns em tempo de
-execução — funciona hoje, contra o commit `99f6f02fec`, mas é inerentemente
-frágil a mudanças internas desse pacote em versões futuras do Harness.
+O serviço `@deepseek-ai/dsh-client-locale` (Harness `0.1.0-rc.7`, commit
+`99f6f02fec`) trata o conjunto de idiomas como **fechado**:
+
+```ts
+export const LOCALE_IDS = ['zh', 'en'] as const   // locale-settings.ts
+const LOCALES = Object.freeze([                    // client/index.ts
+  { id: 'zh', label: '中文' },
+  { id: 'en', label: 'English' },
+])
+```
+
+Essa constante é exatamente o que a lista de **Settings → General → Language**
+renderiza, e `setLocale()` valida contra ela — qualquer outro id lança
+`Error: locale "<id>" is not registered`. Não existe, hoje, ponto de extensão
+para um pacote de terceiros registrar um idioma novo.
+
+Consequência prática: **registrar dicionários não basta.** Um pacote que só
+chama `ctx.locale.register(ns, 'pt-BR', dicionário)` coloca as traduções na
+tabela de lookup, mas "Português (Brasil)" nunca aparece como opção — foi
+exatamente o que acontecia em versões anteriores deste pacote.
+
+Por isso o `apply(ctx)` em [src/client.ts](src/client.ts) faz duas coisas:
+
+1. **Registra os dicionários**, como qualquer pacote de tradução.
+2. **Aplica `patchLocaleRuntime()`** sobre a instância em execução do serviço:
+   acrescenta `{ id: 'pt-BR', label: 'Português (Brasil)' }` à lista de
+   idiomas selecionáveis e envolve `setLocale` para que a escolha do pt-BR
+   não tente persistir pelo caminho normal do Host — o schema de
+   configurações (`LocaleSettingsSchema`) também aceita apenas `zh | en` e
+   rejeitaria a gravação. A seleção fica em `localStorage`
+   (`dsh-locale-pt-br:active`) e é restaurada a cada carregamento.
+
+Isso se apoia em campos que o `dsh-client-locale` declara `private` no
+TypeScript, mas que são propriedades comuns em tempo de execução. Funciona
+hoje, é frágil a refatorações internas do Harness amanhã.
 
 **Limitação conhecida:** se a seção de configurações `locale` do Host mudar
-por qualquer outro motivo enquanto o pt-BR estiver ativo (por exemplo, uma
-sincronização vinda de outra aba), o próprio `adopt()` do serviço volta para
-a preferência `zh`/`en` armazenada no Host. Selecionar Português (Brasil)
-novamente em Settings recupera o idioma.
+por outro motivo enquanto o pt-BR estiver ativo (por exemplo, uma
+sincronização vinda de outra aba), o `adopt()` do próprio serviço volta para
+a preferência `zh`/`en` armazenada. Reselecionar o idioma em Settings
+recupera.
 
-A solução definitiva é o Harness expor um ponto de extensão de verdade (por
-exemplo, um método `registerLocale({ id, label })` no serviço de idioma, e um
-schema de preferências que aceite ids dinâmicos) para que pacotes de terceiros
-não precisem tocar em estado interno. Esse patch é um paliativo até lá.
+**A solução definitiva é upstream:** um método `registerLocale({ id, label })`
+no serviço de idioma e um schema de preferências que aceite ids dinâmicos.
+Enquanto isso não existe, este patch é o paliativo — e está documentado assim
+de propósito.
+
+</details>
 
 ## Cobertura auditada
 
@@ -72,47 +156,9 @@ checkout do DeepSeek Harness no commit `99f6f02fec` (2026-08-17). Nesse
 snapshot, todos os namespaces visuais estáticos auditados possuem entradas
 `pt-BR` correspondentes.
 
-O Harness evolui rapidamente. Ao atualizar o checkout de referência, execute
-uma nova auditoria de namespaces e chaves antes de manter a alegação de
-cobertura integral.
-
-## Requisitos
-
-- [Node.js](https://nodejs.org/) 22 ou superior;
-- [pnpm](https://pnpm.io/installation);
-- um checkout recente do DeepSeek Harness preparado com `pnpm install` e
-  `pnpm run build`.
-
-## Instalação pelo GitHub
-
-No terminal, entre no checkout do DeepSeek Harness e adicione o pacote ao
-perfil Web:
-
-```sh
-cd ~/deepseek-harness
-pnpm dsh plugin --profile web add github:JoaoPauloNA/deepseek-harness-pt-br
-```
-
-Inicie a interface:
-
-```sh
-pnpm dsh web
-```
-
-Abra `http://127.0.0.1:3080`. Em **Settings → General → Language**, selecione
-**Português (Brasil)**.
-
-### Instalação reproduzível
-
-Para evitar que uma mudança futura no repositório altere a sua instalação,
-fixe um commit ou uma tag:
-
-```sh
-pnpm dsh plugin --profile web add github:JoaoPauloNA/deepseek-harness-pt-br#<commit-ou-tag>
-```
-
-O repositório já contém o cliente JavaScript compilado. Por isso, a instalação
-via GitHub não depende de executar scripts de build do pacote.
+O Harness evolui rapidamente. Ao atualizar o checkout de referência, refaça a
+auditoria de namespaces e chaves antes de manter a alegação de cobertura
+integral.
 
 ## Desenvolvimento local
 
@@ -125,29 +171,25 @@ pnpm dsh plugin --profile web add /caminho/absoluto/para/deepseek-harness-pt-br
 pnpm dsh web
 ```
 
-O arquivo-fonte é [src/client.ts](src/client.ts). A instalação carrega o
-artefato versionado [lib/client.js](lib/client.js), portanto uma contribuição
-deve atualizar os dois arquivos antes de reiniciar o servidor e atualizar a
-página no navegador. Consulte o [guia local](GUIA_LOCAL.md) para o roteiro de
-validação.
-
-## Atualizar ou remover
-
-Para atualizar a instalação do GitHub, execute novamente o comando de
-instalação com a revisão desejada. Para remover o pacote:
+Confirme que a camada entrou:
 
 ```sh
-cd ~/deepseek-harness
-pnpm dsh plugin --profile web remove dsh-locale-pt-br
+pnpm dsh --profile web --dump-config    # deve listar "# == dsh-locale-pt-br"
 ```
+
+O arquivo-fonte é [src/client.ts](src/client.ts); a instalação carrega o
+artefato versionado [lib/client.js](lib/client.js). **Uma contribuição precisa
+atualizar os dois** antes de reiniciar o servidor e recarregar a página.
+O roteiro completo de validação está no [guia local](GUIA_LOCAL.md).
 
 ## Contribuindo
 
 As traduções ficam em [src/client.ts](src/client.ts), organizadas por
-namespace da interface. Ao adicionar uma área, valide no Harness tanto os
-textos em português quanto o fallback para chaves ainda não cobertas.
+namespace da interface. Ao cobrir uma área nova, valide no Harness tanto os
+textos em português quanto o fallback para chaves ainda não traduzidas.
 
-Correções de linguagem, sugestões de terminologia e novas traduções são bem-vindas.
+Correções de linguagem, sugestões de terminologia e novas traduções são
+bem-vindas.
 
 ## Licença
 
