@@ -13,10 +13,17 @@ preservado no idioma de origem.
 
 > **Status da cobertura — interface estática:** `██████████ 100%`
 
-> Este pacote requer uma versão recente do DeepSeek Harness, na qual
-> **Português (Brasil)** já aparece em **Settings → General → Language**.
-> A versão publicada que é iniciada por `npx @deepseek-ai/dsh web` pode não
-> incluir essa opção ainda.
+> **Sobre a opção de idioma em Settings:** o DeepSeek Harness (`dsh`
+> `0.1.0-rc.7`, commit `99f6f02fec`) ainda não tem um ponto de extensão para
+> um pacote de terceiros adicionar um idioma novo à lista de
+> **Settings → General → Language** — o serviço `@deepseek-ai/dsh-client-locale`
+> trata `zh`/`en` como um conjunto fechado (`LOCALE_IDS`), tanto na lista
+> exibida quanto na validação de `setLocale()`. Registrar só os dicionários
+> pt-BR (como uma versão anterior deste pacote fazia) carrega as traduções,
+> mas nunca torna **Português (Brasil)** selecionável. Por isso este pacote
+> aplica um patch em tempo de execução na instância do serviço de idioma
+> (ver [Como o pt-BR é ativado](#como-o-pt-br-é-ativado) abaixo) para expor a
+> opção enquanto o Harness não ganha suporte nativo a idiomas adicionais.
 
 ## O que está traduzido
 
@@ -26,6 +33,37 @@ preservado no idioma de origem.
 | Sessões e colaboração | Espaços de trabalho, metas, perguntas, subagentes, workflows e trajetória |
 | Configurações | Geral, idioma, aparência, modelos, plugins, permissões e predefinições de agente |
 | Navegação e superfícies auxiliares | Barra lateral, comandos, habilidades, jobs, feedback e arquivos gerados |
+
+## Como o pt-BR é ativado
+
+`src/client.ts` faz duas coisas em `apply(ctx)`:
+
+1. Registra os dicionários pt-BR no serviço de idioma, como qualquer pacote
+   de tradução (`ctx.locale.register(namespace, 'pt-BR', dicionário)`).
+2. Em seguida, `patchLocaleRuntime()` altera a instância em execução do
+   serviço para incluir `{ id: 'pt-BR', label: 'Português (Brasil)' }` na
+   lista de idiomas selecionáveis, e troca `setLocale` para que a seleção do
+   pt-BR não tente persistir a preferência pelo caminho normal do Host — o
+   schema de configurações (`LocaleSettingsSchema`) também só aceita
+   `zh | en` e rejeitaria a gravação. A seleção do pt-BR é lembrada em
+   `localStorage` (`dsh-locale-pt-br:active`) e reaplicada a cada
+   carregamento da página.
+
+Isso depende de campos e métodos que o `dsh-client-locale` declara `private`
+no TypeScript, mas que continuam sendo propriedades comuns em tempo de
+execução — funciona hoje, contra o commit `99f6f02fec`, mas é inerentemente
+frágil a mudanças internas desse pacote em versões futuras do Harness.
+
+**Limitação conhecida:** se a seção de configurações `locale` do Host mudar
+por qualquer outro motivo enquanto o pt-BR estiver ativo (por exemplo, uma
+sincronização vinda de outra aba), o próprio `adopt()` do serviço volta para
+a preferência `zh`/`en` armazenada no Host. Selecionar Português (Brasil)
+novamente em Settings recupera o idioma.
+
+A solução definitiva é o Harness expor um ponto de extensão de verdade (por
+exemplo, um método `registerLocale({ id, label })` no serviço de idioma, e um
+schema de preferências que aceite ids dinâmicos) para que pacotes de terceiros
+não precisem tocar em estado interno. Esse patch é um paliativo até lá.
 
 ## Cobertura auditada
 

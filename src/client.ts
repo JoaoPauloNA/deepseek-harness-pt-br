@@ -365,9 +365,112 @@ Object.assign(dictionaries, {
 /** Required locale service. */
 export const inject = ['locale']
 
-/** Register the Brazilian Portuguese dictionaries with the active client locale service. */
+/** Locale id this package adds. */
+const PT_BR_ID = 'pt-BR'
+/** Display name shown in the Settings language row, in its own language. */
+const PT_BR_LABEL = 'Português (Brasil)'
+/** Session-persistence key, since the Host settings schema only accepts 'zh' | 'en'. */
+const STORAGE_KEY = 'dsh-locale-pt-br:active'
+
+/**
+ * Internal shape of `@deepseek-ai/dsh-client-locale`'s LocaleRuntime that this
+ * plugin reaches into. `snapshot`, `publish` and `setLocale` are declared
+ * `private` in the TypeScript source, but that is a compile-time-only
+ * boundary — at runtime they are plain instance members, which is what makes
+ * the stopgap below possible.
+ */
+interface PatchableLocaleRuntime {
+  snapshot: { active: string, locales: readonly { id: string, label: string }[], revision: number }
+  publish: (active: string, localeChanged: boolean) => void
+  setLocale: (id: string) => void
+}
+
+/**
+ * Register the Brazilian Portuguese dictionaries with the active client
+ * locale service, then patch that service so pt-BR is actually selectable.
+ *
+ * Why the patch exists: as of DeepSeek Harness 0.1.0-rc.7,
+ * `@deepseek-ai/dsh-client-locale` ships a closed locale set — `LOCALE_IDS`
+ * and the Settings language row's `LOCALES` are both hardcoded to
+ * `['zh', 'en']`, and `setLocale()` throws for any other id. Dictionary
+ * registration alone (the block below) lands translations in the lookup
+ * table but never makes "Português (Brasil)" appear as an option. There is
+ * currently no supported extension point for a third-party package to add a
+ * new locale id — see the upstream tracking note this package's README
+ * links to. Until the harness ships one (or accepts a patch adding a
+ * `registerLocale` API), this function mutates the running LocaleRuntime
+ * instance directly.
+ *
+ * What the patch does NOT do: persist the pt-BR preference through the Host
+ * settings service, because `LocaleSettingsSchema` (also `zh | en`-only)
+ * would reject that write. The selection is instead remembered in
+ * `localStorage` and reapplied on boot. A caveat this implies: if the Host
+ * settings section for `locale` changes for any other reason while pt-BR is
+ * active (e.g. a sync from another tab), the runtime's own `adopt()` will
+ * fall back to the Host-stored zh/en preference. Selecting the language
+ * again from Settings recovers it.
+ * @param ctx - client cordis context carrying the injected `locale` service.
+ */
 export function apply(ctx: Context): void {
   for (const [namespace, dictionary] of Object.entries(dictionaries)) {
     ctx.effect(() => ctx.locale.register(namespace, 'pt-BR', dictionary), `locale-pt-br: ${namespace}`)
+  }
+  patchLocaleRuntime(ctx.locale as unknown as PatchableLocaleRuntime)
+}
+
+/**
+ * Add pt-BR to the running locale service's selectable list and make
+ * `setLocale('pt-BR')` work without touching Host-persisted settings.
+ * Idempotent: re-applying (HMR, local dev reload) is a no-op once patched.
+ * @param runtime - the locale service instance to patch in place.
+ */
+function patchLocaleRuntime(runtime: PatchableLocaleRuntime): void {
+  if (runtime.snapshot.locales.some(locale => locale.id === PT_BR_ID)) return
+
+  runtime.snapshot = Object.freeze({
+    ...runtime.snapshot,
+    locales: Object.freeze([...runtime.snapshot.locales, { id: PT_BR_ID, label: PT_BR_LABEL }]),
+  })
+
+  const originalSetLocale = runtime.setLocale.bind(runtime)
+  runtime.setLocale = (id: string): void => {
+    if (id !== PT_BR_ID) {
+      clearStoredPreference()
+      originalSetLocale(id)
+      return
+    }
+    if (runtime.snapshot.active === PT_BR_ID) return
+    runtime.publish(PT_BR_ID, true)
+    storePreference()
+  }
+
+  if (readStoredPreference()) runtime.publish(PT_BR_ID, true)
+}
+
+/** Persist the pt-BR selection across reloads (best-effort; ignore storage failures). */
+function storePreference(): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, '1')
+  } catch {
+    // Storage unavailable (private browsing, disabled cookies, …); the
+    // selection still works for this page load.
+  }
+}
+
+/** Clear a previously stored pt-BR selection when another locale is chosen. */
+function clearStoredPreference(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // See storePreference.
+  }
+}
+
+/** Read whether pt-BR was the last selection stored by this package. */
+function readStoredPreference(): boolean {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === '1'
+  } catch {
+    return false
   }
 }
